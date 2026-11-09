@@ -1,6 +1,48 @@
 [mod]
-publishedFileId=0
+publishedFileId=3836166241
 Title=[WOTC] StackFix - Stop the 0xC00000FD Crash
 Description=Raise the XCOM 2 thread-stack reserve so heavily modded campaigns stop crashing with a stack overflow (0xC00000FD) during tactical battles.
+
+[b]THE PROBLEM[/b]
+
+In a heavily modded campaign the engine sometimes copies a very large array onto the thread stack in one go - a single request measured across six real crash dumps at [b]5.6 to 10.0 MB[/b] (peak 10,024,968 bytes). The default thread stack is only 5,000,000 bytes (~4.77 MiB), so the request walks past the guard page and the game dies instantly with [b]0xC00000FD STACK_OVERFLOW[/b].
+
+The array is data-driven: the bigger the campaign - more mods, more units, longer history - the bigger it gets. That is why the crash shows up in long-running, heavily-modded campaigns, typically during enemy-turn visualisation or when a mod lets you control the alien team.
+
+[b]THIS IS NOT A NORMAL MOD[/b]
+
+The game does not load this. It is a tool plus instructions: you run it once, on your own machine, and it patches your own copy of the game executable. [b]No game files are distributed here[/b].
+
+[b]HOW TO USE[/b]
+
+[list]
+[*]Subscribe. Steam downloads this package.
+[*][b]Close XCOM 2[/b] - it locks the executable while running.
+[*]Open the folder Steam put this in, and double-click [b]StackFix.bat[/b]. If the executable is still original it asks "Raise the reserve to 32 MiB now? [y/N]" - type [b]y[/b]. That is the whole patch.
+[*]To undo, run [b]StackFix.bat Restore[/b]. It rewrites only those 8 bytes back - any other patch on the same executable (such as SaveFix) is untouched.
+[/list]
+
+[b]SOURCE AND TECHNICAL WRITEUP[/b]
+
+[url=https://github.com/A16Nights/xcom2-stackfix]github.com/A16Nights/xcom2-stackfix[/url]
+Includes the crash forensics, the disassembly that shows where the 24-bytes-per-element stack copy happens, and the measurements behind the 32 MiB value.
+
+[b]中文说明[/b]
+
+把《幽浮2》的线程栈容量提高，让重度 MOD 的战役不再在战斗中因栈溢出（0xC00000FD）而崩溃。
+
+这是一个工具，不是可以加载的 MOD。它只修改 XCom2.exe 的一个字段（PE 可选头的 SizeOfStackReserve，从 5,000,000 改到 33,554,432 = 32 MiB），改完之后游戏就能扛住大规模 MOD 战役里那种一次性的超大栈请求。SizeOfStackCommit 完全不动——每次只改 8 个字节。
+
+[b]为什么会崩[/b]
+
+重度 MOD 的战役里，引擎有时会把一个非常大的数组一次性拷到线程栈上——六份真实崩溃转储实测，这个请求达到 5.6 到 10.0 MB（峰值 10,024,968 字节）。而默认线程栈只有 5,000,000 字节（约 4.77 MiB），请求一越界就立刻爆栈。
+
+[b]怎么用[/b]
+
+关闭游戏，双击条目文件夹里的 StackFix.bat，输入 y。想还原就运行 StackFix.bat Restore，它只把那 8 个字节改回去。
+
+[b]源码与技术分析[/b]
+
+[url=https://github.com/A16Nights/xcom2-stackfix]github.com/A16Nights/xcom2-stackfix[/url]
 RequiresXPACK=true
 tags= war of the chosen, WotC, utility

@@ -4,7 +4,7 @@
 	"publishedfileid"		"3836166241"
 	"contentfolder"		"D:\\DeepSeek Work\\XCOM2\\gh\\xcom2-stackfix\\workshop\\item"
 	"previewfile"		"D:\\DeepSeek Work\\XCOM2\\gh\\xcom2-stackfix\\workshop\\item\\ModPreview.jpg"
-	"visibility"		"2"
+	"visibility"		"0"
 	"title"		"[WOTC] StackFix - Stop the 0xC00000FD Crash"
 	"description"		"[b]Raises the XCOM 2 thread-stack reserve so heavily modded campaigns stop crashing with a stack overflow (0xC00000FD) during tactical battles.[/b]
 
@@ -34,6 +34,9 @@ The observed peak request (9.56 MiB) fits with a 3.3x margin.
 The tool never hardcodes a file offset: it parses the PE header, checks the format, and refuses to act on a file it does not recognise. Both the base game and War of the Chosen are supported. Steam's Verify Integrity will undo the patch; just run Apply again.
 
 Read [b]ReadMe.txt[/b] in the item folder for full details, requirements and caveats.
+
+Source, technical write-up and bug tracker:
+[url=https://github.com/A16Nights/xcom2-stackfix]https://github.com/A16Nights/xcom2-stackfix[/url]
 
 [h1]Verified[/h1]
 [list]
@@ -70,6 +73,9 @@ XCom2.exe PE 可选头里的一个字段：
 [/list]
 工具不写死文件偏移：它解析 PE 头、检查格式，认不出的文件一律拒绝动手。基础版和天选者之战都支持。Steam 的「验证游戏文件完整性」会把补丁抹掉，重新运行一次 Apply 即可。
 
-完整说明、前提条件和注意事项请看条目文件夹里的 [b]ReadMe.txt[/b]。"
+完整说明、前提条件和注意事项请看条目文件夹里的 [b]ReadMe.txt[/b]。
+
+源码、技术分析与问题反馈：
+[url=https://github.com/A16Nights/xcom2-stackfix]https://github.com/A16Nights/xcom2-stackfix[/url]"
 	"changenote"		"Initial release. Raises SizeOfStackReserve from 5,000,000 to 32 MiB (8 bytes of the PE header, commit untouched); restore rewrites only those 8 bytes so other exe patches survive."
 }

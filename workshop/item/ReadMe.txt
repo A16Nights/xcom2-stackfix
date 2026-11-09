@@ -118,6 +118,17 @@ TECHNICAL SUMMARY
   full playthroughs of the crashing scenario with zero crashes.
 
 
+SOURCE AND TECHNICAL WRITE-UP
+-----------------------------
+https://github.com/A16Nights/xcom2-stackfix
+
+The repository contains the crash forensics, the disassembly of the
+caller that performs the huge stack copy, the field-level explanation
+of SizeOfStackReserve and SizeOfStackCommit, and a Python version of
+this tool (tools/xcom2_stackfix.py) with the same status/apply/restore
+commands for scripting.
+
+
 LICENSE
 -------
 MIT. See the LICENSE file in this folder. XCOM 2 is a trademark of
