@@ -77,5 +77,5 @@ XCom2.exe PE 可选头里的一个字段：
 
 源码、技术分析与问题反馈：
 [url=https://github.com/A16Nights/xcom2-stackfix]https://github.com/A16Nights/xcom2-stackfix[/url]"
-	"changenote"		"Initial release. Raises SizeOfStackReserve from 5,000,000 to 32 MiB (8 bytes of the PE header, commit untouched); restore rewrites only those 8 bytes so other exe patches survive."
+	"changenote"		"Adds the GitHub repository links. Initial release raises SizeOfStackReserve from 5,000,000 to 32 MiB (8 bytes of the PE header, commit untouched); restore rewrites only those 8 bytes so other exe patches survive."
 }
