@@ -1,0 +1,75 @@
+"workshopitem"
+{
+	"appid"		"268500"
+	"publishedfileid"		"3836166241"
+	"contentfolder"		"D:\\DeepSeek Work\\XCOM2\\gh\\xcom2-stackfix\\workshop\\item"
+	"previewfile"		"D:\\DeepSeek Work\\XCOM2\\gh\\xcom2-stackfix\\workshop\\item\\ModPreview.jpg"
+	"visibility"		"2"
+	"title"		"[WOTC] StackFix - Stop the 0xC00000FD Crash"
+	"description"		"[b]Raises the XCOM 2 thread-stack reserve so heavily modded campaigns stop crashing with a stack overflow (0xC00000FD) during tactical battles.[/b]
+
+This is a TOOL, not a loadable mod. It patches one field of XCom2.exe, after which the game survives the huge one-shot stack requests a big modded campaign generates. Nothing else about the game changes.
+
+[h1]Why it crashes[/h1]
+In a heavily modded campaign the engine sometimes copies a very large array onto the thread stack in one go - a single request measured across six real crash dumps at [b]5.6 to 10.0 MB[/b] (peak 10,024,968 bytes). The default thread stack is only 5,000,000 bytes (~4.77 MiB), so the request walks past the guard page and the game dies instantly with [b]0xC00000FD STACK_OVERFLOW[/b].
+
+The array is data-driven: the bigger the campaign - more mods, more units, longer history - the bigger it gets. That is why the crash shows up in long-running, heavily-modded campaigns, typically during enemy-turn visualisation or when a mod lets you control the alien team.
+
+[h1]What it changes[/h1]
+One field in the PE optional header of XCom2.exe:
+[code]SizeOfStackReserve  @ optional header +0x48 (8 bytes, PE32+)
+        5,000,000  ->  33,554,432   (32 MiB)[/code]
+That is the only thing the tool writes. [b]SizeOfStackCommit[/b] - the physical memory handed to every thread immediately - is never touched. Reserve is address space only: a 64-bit process has 128 TB of it, so 145 threads x 32 MiB = 4.6 GB reserved costs nothing. The stack still grows page by page on demand, exactly as before; the ceiling is just higher.
+
+The observed peak request (9.56 MiB) fits with a 3.3x margin.
+
+[h1]How to use[/h1]
+[list]
+[*] Subscribe to this item.
+[*] [b]Close XCOM 2[/b] - it locks the executable while running.
+[*] Open the folder Steam put this in, and double-click [b]StackFix.bat[/b]. It reports what it finds, and if the executable is still original it asks [i]Raise the reserve to 32 MiB now? [y/N][/i] - answer [b]y[/b]. That is the whole patch: one double-click and one keypress.
+[*] Want a different size, or scripting it? Pass an argument instead - [b]StackFix.bat Apply -MiB 64[/b], [b]StackFix.bat Restore[/b]. Any argument skips the question.
+[*] To undo, run [b]StackFix.bat Restore[/b]. It rewrites only those 8 bytes back - any other patch on the same executable (such as [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3818684374]SaveFix[/url]) is untouched.
+[/list]
+The tool never hardcodes a file offset: it parses the PE header, checks the format, and refuses to act on a file it does not recognise. Both the base game and War of the Chosen are supported. Steam's Verify Integrity will undo the patch; just run Apply again.
+
+Read [b]ReadMe.txt[/b] in the item folder for full details, requirements and caveats.
+
+[h1]Verified[/h1]
+[list]
+[*] The patched value is loaded by the OS: confirmed by reading the live process's PE header.
+[*] 91 of 146 threads reserving 32 MiB, and all 34 game-code threads covered.
+[*] Two full playthroughs of the exact crashing scenario (controlling the alien team, enemy turns, heavy mod list): [b]zero crashes[/b], where the same scenario crashed 6 out of 6 times before the patch.
+[/list]
+
+[h1]中文说明[/h1]
+[b]把《幽浮2》的线程栈容量提高[/b]，让重度 MOD 的战役不再在战斗中因栈溢出（0xC00000FD）而崩溃。
+
+这是一个[b]工具[/b]，不是可以加载的 MOD。它只修改 XCom2.exe 的一个字段，改完之后游戏就能扛住大规模 MOD 战役里那种一次性的超大栈请求，游戏的其他部分没有任何变化。
+
+[h1]为什么会崩[/h1]
+重度 MOD 的战役里，引擎有时会把一个非常大的数组一次性拷到线程栈上——六份真实崩溃转储实测，这个请求达到 [b]5.6 到 10.0 MB[/b]（峰值 10,024,968 字节）。而默认线程栈只有 5,000,000 字节（约 4.77 MiB），请求一越界就立刻爆栈，游戏直接死掉。
+
+这个数组是随战役规模增长的：MOD 越多、单位越多、战役越久，它就越大。所以崩溃总是出现在长期重度 MOD 的战役里，典型时机是敌方回合的可视化阶段，或者用 MOD 控制外星人队伍的时候。
+
+[h1]改了什么[/h1]
+XCom2.exe PE 可选头里的一个字段：
+[code]SizeOfStackReserve  @ 可选头 +0x48（8 字节，PE32+）
+        5,000,000  ->  33,554,432   (32 MiB)[/code]
+工具只写这一个字段。[b]SizeOfStackCommit[/b]——每个线程一创建就立刻拿到的物理内存——完全不动。Reserve 只是保留地址空间：64 位进程有 128 TB，145 个线程 × 32 MiB = 4.6 GB 保留不花一分钱内存。栈还是像原来一样按页增长，只是天花板高了。
+
+实测峰值请求（9.56 MiB）放进来还有 3.3 倍余量。
+
+[h1]怎么用[/h1]
+[list]
+[*] 订阅本条目。
+[*] [b]关闭游戏[/b]——游戏运行时会锁住 exe。
+[*] 打开 Steam 下载本条目的文件夹，双击 [b]StackFix.bat[/b]：它先报告当前状态；如果还没打过补丁，它会问「Raise the reserve to 32 MiB now? [y/N]」，输入 [b]y[/b] 回车即可。
+[*] 想换大小或写脚本，就直接带参数运行：[b]StackFix.bat Apply -MiB 64[/b]、[b]StackFix.bat Restore[/b]。只要带了参数就不会再问。
+[*] 想还原就运行 [b]StackFix.bat Restore[/b]。它只把那 8 个字节改回去——同一个 exe 上打的其他补丁（比如 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3818684374]SaveFix[/url]）完全不受影响。
+[/list]
+工具不写死文件偏移：它解析 PE 头、检查格式，认不出的文件一律拒绝动手。基础版和天选者之战都支持。Steam 的「验证游戏文件完整性」会把补丁抹掉，重新运行一次 Apply 即可。
+
+完整说明、前提条件和注意事项请看条目文件夹里的 [b]ReadMe.txt[/b]。"
+	"changenote"		"Initial release. Raises SizeOfStackReserve from 5,000,000 to 32 MiB (8 bytes of the PE header, commit untouched); restore rewrites only those 8 bytes so other exe patches survive."
+}

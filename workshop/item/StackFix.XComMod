@@ -1,0 +1,6 @@
+[mod]
+publishedFileId=0
+Title=[WOTC] StackFix - Stop the 0xC00000FD Crash
+Description=Raise the XCOM 2 thread-stack reserve so heavily modded campaigns stop crashing with a stack overflow (0xC00000FD) during tactical battles.
+RequiresXPACK=true
+tags= war of the chosen, WotC, utility
