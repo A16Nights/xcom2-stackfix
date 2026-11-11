@@ -37,12 +37,23 @@ Usage
 
 Common options:
     --exe PATH      operate on a specific executable
-    --all           operate on every XCOM 2 executable found
+    --all           also touch the base-game executable (opt-in; see below)
     --dry-run       do not write anything (apply/restore)
     --yes           do not ask for confirmation
 
 Only eight bytes of the optional header are written, so a code patch applied to
 the same executable -- such as SaveFix -- is not disturbed.
+
+Two things are worth knowing before writing:
+
+* ``apply`` and ``restore`` act on the War of the Chosen executable only.  The
+  base game ships a second ``XCom2.exe`` one directory up; patching it does
+  nothing for a WOTC player, so it is opt-in via ``--all``.
+* The field sits inside the region covered by the executable's Authenticode
+  signature, so the signature stops validating once written.  Windows normally
+  still starts such an image, but a machine with Smart App Control, WDAC or an
+  antivirus that treats modified executables as tampering may not.  ``status``
+  reports whether a signature is present.
 """
 from __future__ import annotations
 
@@ -167,6 +178,20 @@ def candidate_exes(explicit: str | None = None) -> list[str]:
     return found
 
 
+def preferred_targets(explicit: str | None, all_builds: bool) -> list[str]:
+    """The executable(s) a write operation should act on.
+
+    War of the Chosen is a separate executable from the base game, and patching
+    one does nothing for the other.  A WOTC player therefore has no reason to
+    have the base-game file rewritten, so it is opt-in: ``--all`` asks for it.
+    """
+    targets = candidate_exes(explicit)
+    if all_builds or explicit or len(targets) <= 1:
+        return targets
+    wotc = [p for p in targets if looks_like_wotc(p)]
+    return wotc if wotc else targets
+
+
 # ------------------------------------------------------------ header access
 
 class StackFields:
@@ -200,6 +225,21 @@ class StackFields:
 
     def backup_path(self) -> str:
         return self.path + BACKUP_EXT
+
+    def signature_size(self) -> int:
+        """Bytes in the certificate table, or 0 when the image is unsigned.
+
+        Data directory entry 4 (SECURITY) points at the Authenticode blob and,
+        unlike every other entry, holds a file offset rather than an RVA.  This
+        tool never writes it: the signature simply stops validating, because the
+        bytes it covers include the field we change.
+        """
+        # PE32 is 0x60 bytes of optional header before the directories, PE32+ 0x70.
+        dirs = self.opt_off + (0x70 if self.pe.magic == 0x20B else 0x60)
+        entry = dirs + 4 * 8          # SECURITY is directory entry 4
+        if entry + 8 > len(self.data):
+            return 0
+        return struct.unpack_from('<I', self.data, entry + 4)[0]
 
 
 def read_fields(path: str) -> StackFields:
@@ -315,6 +355,13 @@ def cmd_status(args) -> int:
               % (fields.commit, human(fields.commit)))
         print('    peak seen  %s' % human(PEAK_OBSERVED))
 
+        sig = fields.signature_size()
+        if sig:
+            print('    signature  %s bytes (Authenticode) - writing the field '
+                  'below invalidates it' % f'{sig:,}')
+        else:
+            print('    signature  none')
+
         backup = fields.backup_path()
         if os.path.isfile(backup):
             print('    backup     %s' % backup)
@@ -358,7 +405,7 @@ def cmd_apply(args) -> int:
               '(%s).' % (mib, human(PEAK_OBSERVED)))
         return EXIT_REFUSED
 
-    targets = candidate_exes(args.exe)
+    targets = preferred_targets(args.exe, args.all)
     if not targets:
         print('No XCOM 2 executable found. Use --exe "<path>" to point at one.')
         return EXIT_FAIL
@@ -396,6 +443,14 @@ def cmd_apply(args) -> int:
         print('  About to change SizeOfStackReserve: %s  ->  %s'
               % (human(fields.reserve), human(new_reserve)))
         print('  SizeOfStackCommit will not be touched.')
+        if fields.signature_size():
+            print('  note       this field is covered by the executable\'s '
+                  'signature, so')
+            print('             the signature will no longer validate. Normal '
+                  'Windows')
+            print('             still starts the game; a locked-down machine or '
+                  'an AV that')
+            print('             flags modified executables may not. See ReadMe.')
 
         if args.dry_run:
             print()
@@ -453,7 +508,7 @@ def cmd_apply(args) -> int:
 # ------------------------------------------------------------------ restore
 
 def cmd_restore(args) -> int:
-    targets = candidate_exes(args.exe)
+    targets = preferred_targets(args.exe, args.all)
     if not targets:
         print('No XCOM 2 executable found. Use --exe "<path>" to point at one.')
         return EXIT_FAIL
@@ -586,11 +641,15 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_options(ap)
     ap.add_argument('--yes', action='store_true', help='do not ask for confirmation')
     ap.add_argument('--all', action='store_true',
-                    help='(default) act on every executable found')
+                    help='also act on the base-game executable '
+                         '(default: War of the Chosen only)')
 
     rs = sub.add_parser('restore', help='put the original reserve back')
     add_common_options(rs)
     rs.add_argument('--yes', action='store_true', help='do not ask for confirmation')
+    rs.add_argument('--all', action='store_true',
+                    help='also act on the base-game executable '
+                         '(default: War of the Chosen only)')
 
     return p
 

@@ -89,15 +89,27 @@ REQUIREMENTS AND CAVEATS
 ------------------------
 - Windows, with PowerShell 5.1 (present on any current Windows).
 - Works on both the base game and War of the Chosen - the field is found
-  by parsing the PE header, never by a hard-coded file offset.
+  by parsing the PE header, never by a hard-coded file offset. Only one
+  executable is touched per run, and War of the Chosen is preferred,
+  because that is the one the game launches when both are installed.
+  Use -Exe to point at a different file.
 - If your game is under "C:\Program Files (x86)" - the Steam default -
   the folder is usually administrator-only, so the tool cannot read or
   write XCom2.exe. It will say so and offer to retry elevated; say yes,
   or right-click StackFix.bat and choose "Run as administrator".
 - Modifies a game executable. That is your decision to make; it is why
   this is a manual install rather than an ordinary mod.
-- Antivirus software may flag any tool that writes to an .exe. The
-  script is plain text - open StackFix.ps1 in Notepad and read it
+- The 8 bytes it changes sit inside the region covered by the
+  executable's Authenticode signature, so that signature no longer
+  validates afterwards. Windows normally still starts a modified image
+  and the game performs no code-integrity check of its own, but a
+  machine running Smart App Control, WDAC, or an antivirus/EDR that
+  treats modified executables as tampering can refuse to launch it. If
+  the game stops starting right after patching and Restore brings it
+  back, that is what happened: add the game folder to your antivirus
+  exclusions, or keep the patch off.
+- Antivirus software may also flag any tool that writes to an .exe.
+  The script is plain text - open StackFix.ps1 in Notepad and read it
   before running it.
 - Engine-created worker threads that ask for their own explicit stack
   size are not affected by this field; every crash observed so far ran

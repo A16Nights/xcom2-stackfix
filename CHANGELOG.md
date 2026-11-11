@@ -3,6 +3,41 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.1] — 2026-11-11
+
+Prompted by a Workshop comment: "now my game just crashes on startup". Nothing
+below changes the patch itself — it closes gaps in how the tool behaves and
+reports what it did.
+
+### Added
+
+* **`status` reports the Authenticode signature.** The field this tool rewrites
+  sits inside the region the signature covers, so patching necessarily
+  invalidates it. The tool now says so instead of leaving it to be discovered:
+  `signature  7,112 bytes (Authenticode) - writing the field below invalidates it`.
+  `apply` prints the same caveat before writing, including when `-Yes` is passed
+  — that path is what the `.bat` launcher uses when it retries elevated, so it was
+  the one path where nobody would have seen the warning.
+* `restore` accepts `--all`, matching `apply`.
+* The workshop description (EN + ZH) and `ReadMe.txt` explain the signature
+  consequence and what to do about it: exclude the game folder in the antivirus,
+  or leave the patch off. `ReadMe.txt` also states that one executable is touched
+  per run and that War of the Chosen is preferred.
+
+### Changed
+
+* **`apply` and `restore` (Python) now act on War of the Chosen only.** A WOTC
+  player never launches the base-game executable one directory up, so rewriting
+  it carried risk with no benefit. `--all` asks for it explicitly; previously
+  that was the default, and the flag's help text said so.
+
+### Known limitations
+
+* A machine enforcing Smart App Control, WDAC, or an antivirus/EDR that treats
+  modified executables as tampering may refuse to start the patched game. That is
+  inherent to editing the executable, not something a later version can remove;
+  `restore` returns a clean image in one command.
+
 ## [1.0.0] — 2026-11-09
 
 First release. The patch, both implementations, the Workshop item and the
@@ -66,4 +101,8 @@ documentation are all in this release.
   stride are known exactly; the data is not. It does not affect the fix, since
   the size is what matters.
 * The base game executable takes the same patch, but it was only verified in game
-  on *War of the Chosen* — that is where the crash reports come from.
+  on *War of the Chosen* — that is where the crash reports come from. Since 1.0.1
+  it is also not patched unless `--all` is passed.
+* The patch invalidates the executable's Authenticode signature. Windows normally
+  starts such an image anyway; a locked-down machine or a tampering-sensitive
+  antivirus may not. See the 1.0.1 notes.

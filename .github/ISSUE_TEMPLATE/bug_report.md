@@ -41,3 +41,10 @@ $ python tools/xcom2_stackfix.py status
      if it is XCom2.exe+0x10a3f18 (_chkstk), this patch is the right lever and
      the value may simply need to be larger. If it is somewhere else, it is a
      different crash. -->
+
+- Faulting module and offset, if there is a minidump:
+- Does it crash during play, or before the main menu ever appears?
+
+<!-- If it crashes BEFORE the main menu, use the "Game will not start" template
+     instead: that symptom has its own causes, and the first thing to establish
+     is whether Restore makes the game launch again. -->

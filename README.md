@@ -140,8 +140,10 @@ python tools/xcom2_stackfix.py apply 32 --dry-run
 ```
 
 The tool auto-detects the game through the Steam registry and
-`libraryfolders.vdf`, and handles both the base game and *War of the Chosen*.
-Point it somewhere explicitly with `--exe PATH` if it guesses wrong.
+`libraryfolders.vdf`, and can handle both the base game and *War of the Chosen* --
+but `apply` and `restore` act on *War of the Chosen* by default, because that is
+the executable the game launches when both are installed. Add `--all` to include
+the base-game file, or `--exe PATH` to name one explicitly.
 
 ### Choosing a size
 
@@ -163,9 +165,25 @@ at a fixed position inside the parsed optional header, so the tool works on any
 build of either executable without a signature table to maintain. It refuses to
 act on anything that is not a 64-bit PE image.
 
+The patch applies to whichever of the two you point it at. By default `apply` and
+`restore` act on War of the Chosen only — a base-game executable that the WOTC
+player never launches is not worth rewriting. `--all` includes it.
+
 ## What you should know before using this
 
 * **Close the game before patching.** Steam holds a lock on the executable.
+* **The patch invalidates the executable's Authenticode signature.** The 8 bytes
+  it rewrites are inside the region the signature covers, so it can no longer
+  validate. Windows normally launches a modified image anyway and the game runs
+  no code-integrity check of its own — but a machine enforcing Smart App Control,
+  WDAC, or an antivirus/EDR that treats modified executables as tampering can
+  refuse to start it. If the game stops launching right after patching and
+  `restore` brings it back, that is the cause: exclude the game folder in your
+  antivirus, or leave the patch off.
+* **Only one executable is touched per run, and War of the Chosen is preferred.**
+  The base game ships a second `XCom2.exe` one directory up; a WOTC player never
+  launches it, so patching it would carry risk with no benefit. Pass `--all` if
+  you want it too, or `--exe` to name a file.
 * **Steam "Verify integrity of game files" and game updates restore the original
   executable.** Re-run `apply` afterwards.
 * **Engine-created worker threads are not affected.** Some threads are created

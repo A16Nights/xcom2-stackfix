@@ -152,6 +152,17 @@ function Get-PeInfo {
 
     $imageBase = [System.BitConverter]::ToUInt64($Data, $optOff + 24)
 
+    # SECURITY is data-directory entry 4 and, uniquely, holds a file offset
+    # rather than an RVA.  A non-zero size means the image carries an
+    # Authenticode signature -- and the field this tool rewrites sits inside the
+    # bytes that signature covers, so patching invalidates it.
+    $sigSize = 0
+    $dirs = $optOff + 0x70          # PE32+ optional header is 0x70 bytes before the directories
+    $entry = $dirs + (4 * 8)
+    if (($entry + 8) -le $Data.Length) {
+        $sigSize = [System.BitConverter]::ToUInt32($Data, $entry + 4)
+    }
+
     [pscustomobject]@{
         Path         = $Path
         ImageBase    = $imageBase
@@ -159,6 +170,7 @@ function Get-PeInfo {
         OptOff       = $optOff
         ReserveField = $optOff + $SCRIPT:ReserveOffInOpt
         CommitField  = $optOff + $SCRIPT:CommitOffInOpt
+        SignatureSize = $sigSize
     }
 }
 
@@ -298,6 +310,13 @@ function Show-State {
     Write-Item 'commit' ('0x{0:X8}  {1}  (never written)' -f $State.Commit, (Format-Bytes $State.Commit))
     Write-Item 'peak seen' (Format-Bytes $SCRIPT:PeakObserved)
 
+    if ($PeInfo -and $PeInfo.SignatureSize -gt 0) {
+        Write-Item 'signature' ('{0:N0} bytes (Authenticode) - writing the field below invalidates it' -f $PeInfo.SignatureSize)
+    }
+    elseif ($PeInfo) {
+        Write-Item 'signature' 'none'
+    }
+
     if ($State.State -eq 'vanilla') {
         Write-Item 'state' ('ORIGINAL - reserve is 5,000,000 (~4.77 MiB)' ) 'Yellow'
         if ($SCRIPT:PeakObserved -gt $State.Reserve) {
@@ -372,10 +391,17 @@ function Invoke-Apply {
         exit 2
     }
 
+    Write-Host ''
+    Write-Host ('  About to change SizeOfStackReserve: {0}  ->  {1}' -f (Format-Bytes $state.Reserve), (Format-Bytes $new)) -ForegroundColor White
+    Write-Host '  (SizeOfStackCommit stays untouched. Reserve is address space only.)' -ForegroundColor DarkGray
+    if ($pe.SignatureSize -gt 0) {
+        Write-Host '  Note: this field is covered by the executable''s signature, so the' -ForegroundColor DarkGray
+        Write-Host '  signature will no longer validate afterwards. Normal Windows still' -ForegroundColor DarkGray
+        Write-Host '  starts the game; a locked-down machine, or an antivirus that treats' -ForegroundColor DarkGray
+        Write-Host '  modified executables as tampering, may not. See ReadMe.txt.' -ForegroundColor DarkGray
+    }
+
     if (-not $Yes) {
-        Write-Host ''
-        Write-Host ('  About to change SizeOfStackReserve: {0}  ->  {1}' -f (Format-Bytes $state.Reserve), (Format-Bytes $new)) -ForegroundColor White
-        Write-Host '  (SizeOfStackCommit stays untouched. Reserve is address space only.)' -ForegroundColor DarkGray
         $answer = Read-Host '  Proceed? [y/N]'
         if ($answer -notmatch '^(y|yes)$') {
             Write-Host '  Cancelled.' -ForegroundColor DarkGray
